@@ -15,8 +15,11 @@
     <header class="topbar">
       <a href="{% url 'group_list' %}" class="brand">{% icon "wallet" 22 %} Splitly</a>
       <nav class="topnav">
-        <a href="{% url 'member_list' %}" class="nav-link">{% icon "users" 18 %} Splitters</a>
-        <a href="{% url 'settings' %}" class="nav-link" title="Settings">{% icon "settings" 18 %}</a>
+        <a href="{% url 'member_list' %}" class="nav-link" title="Splitters">{% icon "users" 18 %}</a>
+        <a href="{% url 'settings' %}" class="user-chip" title="Signed in — edit settings">
+          <span class="user-avatar">{{ app_settings.name|slice:":1"|upper }}</span>
+          <span class="user-name">{{ app_settings.name }}</span>
+        </a>
         <form action="{% url 'logout' %}" method="post" class="inline-form">
           {% csrf_token %}
           <button type="submit" class="nav-link nav-btn" title="Logout">{% icon "logout" 18 %}</button>

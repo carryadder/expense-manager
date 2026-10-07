@@ -52,6 +52,21 @@ body {
   display: inline-flex; align-items: center; gap: 6px;
 }
 .nav-link:hover { background: var(--card); color: var(--text); }
+
+/* ---------- Signed-in user chip ---------- */
+.user-chip {
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  padding: 5px 12px 5px 5px; border-radius: 30px; color: var(--text);
+  background: var(--card); border: 1px solid var(--line); transition: border-color .18s, background .18s;
+  max-width: 180px;
+}
+.user-chip:hover { border-color: var(--brand); background: var(--card-hi); }
+.user-avatar {
+  width: 26px; height: 26px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  font-size: 12px; font-weight: 800; color: #fff; background: var(--brand-grad);
+}
+.user-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 420px) { .user-name { display: none; } }
 .nav-btn { background: none; border: none; cursor: pointer; font: inherit; }
 .inline-form { display: inline; }
 
@@ -209,6 +224,10 @@ body {
   position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
   z-index: 30; max-width: 588px; width: calc(100% - 32px);
 }
+/* Keep the horizontal centering on hover/active so it rises in place
+   instead of jumping right (the generic .btn transforms drop translateX). */
+.fab:hover { transform: translateX(-50%) translateY(-2px); }
+.fab:active { transform: translateX(-50%) scale(.98); }
 
 /* ---------- Forms ---------- */
 .card-form {
