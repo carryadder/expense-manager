@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
+{% load expense_extras %}
 {% block title %}Log in · Splitly{% endblock %}
 {% block content %}
 
 <div class="auth-wrap">
-  <div class="auth-logo">💸</div>
+  <div class="auth-logo">{% icon "wallet" 40 %}</div>
   <h1>Welcome back</h1>
   <p class="page-sub">Log in to Splitly</p>
 

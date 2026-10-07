@@ -334,7 +334,12 @@ body {
 
 /* ---------- Auth ---------- */
 .auth-wrap { max-width: 400px; margin: 7vh auto 0; }
-.auth-logo { text-align: center; font-size: 40px; margin-bottom: 8px; }
+.auth-logo { display: flex; justify-content: center; margin-bottom: 14px; }
+.auth-logo .icon {
+  box-sizing: content-box; color: var(--brand); padding: 14px;
+  border-radius: 18px; background: var(--card); border: 1px solid var(--line);
+  box-shadow: 0 10px 30px -12px rgba(139, 92, 246, .6);
+}
 .auth-wrap h1 { text-align: center; font-size: 26px; font-weight: 800; margin-bottom: 4px; }
 .auth-wrap .page-sub { text-align: center; }
 .auth-switch { text-align: center; margin-top: 18px; color: var(--muted); font-size: 14px; }
