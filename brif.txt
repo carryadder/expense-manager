@@ -1,0 +1,3 @@
+this is a django web app mobile friendly rich ui, smoother animations, the web app is 
+
+user will add expenses and it's note(optional) and can add memeber like if there are two members both can see contri amount, and split the expenses accordingly. expenses should be user wised so, if i created a expense like FLAT then i need to add expense in FLAT and split in memberes, i don't need to add memeber each time use the last prefrence if last time i add for two memeber then next time defult for two memeber those there should be an option to manger spliters

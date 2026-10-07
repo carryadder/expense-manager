@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load expense_extras %}
+{% block title %}Your groups · Splitly{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div class="hero-label">Total tracked</div>
+  <div class="hero-amount">{{ grand_total|money:app_settings }}</div>
+  <div class="hero-sub">
+    <span>{{ groups|length }} group{{ groups|length|pluralize }}</span>
+    <span>{{ member_count }} splitter{{ member_count|pluralize }}</span>
+  </div>
+</section>
+
+<div class="section-head">
+  <h2>Your groups</h2>
+  <span class="count-pill">{{ groups|length }}</span>
+</div>
+
+{% if groups %}
+<div class="grid">
+  {% for group in groups %}
+  <a href="{% url 'group_detail' group.pk %}" class="group-card">
+    <div class="group-emoji">{% icon group.icon 24 %}</div>
+    <div class="group-meta">
+      <div class="group-name">{{ group.name }}</div>
+      <div class="group-stat">{{ group.expense_count }} expense{{ group.expense_count|pluralize }}</div>
+    </div>
+    <div class="group-amount">{{ group.total|money:app_settings }}</div>
+    <span class="chev">{% icon "chevron-right" 20 %}</span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="empty-emoji">{% icon "folder" 44 %}</div>
+  <h3>No groups yet</h3>
+  <p>Create a group like <b>FLAT</b> or <b>TRIP</b> to start tracking and splitting expenses.</p>
+</div>
+{% endif %}
+
+<a href="{% url 'group_create' %}" class="btn btn-block fab">{% icon "plus" 18 %} New group</a>
+
+{% endblock %}

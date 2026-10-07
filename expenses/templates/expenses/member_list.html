@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load expense_extras %}
+{% block title %}Splitters · Splitly{% endblock %}
+{% block content %}
+
+<a href="{% url 'group_list' %}" class="back-link">{% icon "chevron-left" 16 %} Back</a>
+<h1 class="page-title">Manage splitters</h1>
+<p class="page-sub">People you split expenses with. Add once — reuse across every group.</p>
+
+<form method="post" class="card-form" style="margin-bottom:22px" novalidate>
+  {% csrf_token %}
+  <div class="field" style="margin-bottom:12px">
+    <label for="{{ form.name.id_for_label }}">Add a person</label>
+    {{ form.name }}
+    {{ form.name.errors }}
+  </div>
+  <button type="submit" class="btn btn-block">{% icon "plus" 18 %} Add splitter</button>
+</form>
+
+{% if members %}
+<div class="section-head"><h2>Splitters</h2><span class="count-pill">{{ members|length }}</span></div>
+<div class="grid">
+  {% for member in members %}
+  <div class="member-row">
+    <div class="avatar">{{ member.initials }}</div>
+    <div class="member-name">{{ member.name }}</div>
+    <form action="{% url 'member_delete' member.pk %}" method="post" class="inline-form"
+          onsubmit="return confirm('Remove {{ member.name }}? Their existing splits stay on past expenses.');">
+      {% csrf_token %}
+      <button type="submit" class="btn-danger" title="Remove">{% icon "close" 18 %}</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="empty-emoji">{% icon "users" 44 %}</div>
+  <h3>No splitters yet</h3>
+  <p>Add the people you share expenses with.</p>
+</div>
+{% endif %}
+
+{% endblock %}

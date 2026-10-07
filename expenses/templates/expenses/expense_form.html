@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load expense_extras %}
+{% block title %}Add expense · {{ group.name }}{% endblock %}
+{% block content %}
+
+<a href="{% url 'group_detail' group.pk %}" class="back-link">{% icon "chevron-left" 16 %} {% icon group.icon 14 %} {{ group.name }}</a>
+<h1 class="page-title">Add expense</h1>
+<p class="page-sub">Split it across the members you choose. Your last selection is pre-filled.</p>
+
+<form method="post" class="card-form" novalidate data-currency="{{ app_settings.currency_symbol }}">
+  {% csrf_token %}
+
+  <div class="field">
+    <label for="{{ form.title.id_for_label }}">Title</label>
+    {{ form.title }}
+    {{ form.title.errors }}
+  </div>
+
+  <div class="field">
+    <label for="{{ form.amount.id_for_label }}">Amount</label>
+    <div class="amount-field">
+      <span class="cur">{{ app_settings.currency_symbol }}</span>
+      {{ form.amount }}
+    </div>
+    {{ form.amount.errors }}
+  </div>
+
+  <div class="field">
+    <label for="{{ form.note.id_for_label }}">Note <span style="font-weight:400">(optional)</span></label>
+    {{ form.note }}
+    {{ form.note.errors }}
+  </div>
+
+  <div class="field">
+    <label for="{{ form.paid_by.id_for_label }}">Paid by <span style="font-weight:400">(optional)</span></label>
+    {{ form.paid_by }}
+    {{ form.paid_by.errors }}
+  </div>
+
+  <div class="field">
+    <label>Split between
+      <a href="{% url 'member_list' %}" style="float:right;font-weight:600;color:var(--brand);text-decoration:none">Manage splitters {% icon "chevron-right" 13 %}</a>
+    </label>
+    {% if all_members %}
+    <div class="splitter-grid">
+      {% for member in all_members %}
+      <label class="chip">
+        <input type="checkbox" name="splitters" value="{{ member.id }}"
+               data-name="{{ member.name }}"
+               {% if member.id in default_ids %}checked{% endif %}>
+        <span class="chip-dot">✓</span>
+        {{ member.name }}
+      </label>
+      {% endfor %}
+    </div>
+
+    <div class="split-mode" role="tablist">
+      <label class="mode-opt">
+        <input type="radio" name="split_type" value="equal" {% if split_type != 'custom' %}checked{% endif %}>
+        <span>{% icon "scale" 16 %} Equal</span>
+      </label>
+      <label class="mode-opt">
+        <input type="radio" name="split_type" value="custom" {% if split_type == 'custom' %}checked{% endif %}>
+        <span>{% icon "edit" 16 %} Custom</span>
+      </label>
+    </div>
+
+    <div id="custom-shares" class="custom-shares" hidden>
+      {% for member in all_members %}
+      <div class="share-row" data-member="{{ member.id }}" hidden>
+        <span class="share-name">{{ member.name }}</span>
+        <div class="share-input">
+          <span class="cur">{{ app_settings.currency_symbol }}</span>
+          <input type="text" inputmode="decimal" name="share_{{ member.id }}"
+                 data-member="{{ member.id }}"
+                 value="{{ custom_shares|get_item:member.id }}" placeholder="0.00" autocomplete="off">
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div id="split-preview" class="split-preview"></div>
+    {% else %}
+    <div class="empty" style="padding:24px">
+      <p>No splitters yet.</p>
+      <a href="{% url 'member_list' %}" class="btn btn-ghost" style="margin-top:12px">Add members</a>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if all_members %}
+  <button type="submit" class="btn btn-block">{% icon "check" 18 %} Add &amp; split</button>
+  {% endif %}
+</form>
+
+{% endblock %}

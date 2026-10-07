@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% load expense_extras %}
+{% block title %}New group · Splitly{% endblock %}
+{% block content %}
+
+<a href="{% url 'group_list' %}" class="back-link">{% icon "chevron-left" 16 %} Back</a>
+<h1 class="page-title">New group</h1>
+<p class="page-sub">A group is a bucket for related expenses — like FLAT, TRIP or OFFICE.</p>
+
+<form method="post" class="card-form" novalidate>
+  {% csrf_token %}
+  <div class="field">
+    <label for="{{ form.name.id_for_label }}">Group name</label>
+    {{ form.name }}
+    {{ form.name.errors }}
+  </div>
+  <div class="field">
+    <label>Icon</label>
+    {{ form.icon }}
+    <div class="icon-picker">
+      {% for key in icon_choices %}
+      <button type="button" class="icon-opt{% if forloop.first %} selected{% endif %}" data-icon="{{ key }}" title="{{ key }}">
+        {% icon key 22 %}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  <button type="submit" class="btn btn-block">{% icon "plus" 18 %} Create group</button>
+</form>
+
+{% endblock %}

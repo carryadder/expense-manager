@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load expense_extras %}
+{% block title %}Settings · Splitly{% endblock %}
+{% block content %}
+
+<a href="{% url 'group_list' %}" class="back-link">{% icon "chevron-left" 16 %} Back</a>
+<h1 class="page-title">Settings</h1>
+<p class="page-sub">Preferences applied across the app.</p>
+
+<form method="post" class="card-form" novalidate>
+  {% csrf_token %}
+
+  <div class="field">
+    <label for="{{ form.display_name.id_for_label }}">Display name</label>
+    {{ form.display_name }}
+    <span class="helptext">Shown in the app instead of your username.</span>
+    {{ form.display_name.errors }}
+  </div>
+
+  <div class="field">
+    <label for="{{ form.currency.id_for_label }}">Currency</label>
+    {{ form.currency }}
+    <span class="helptext">Used everywhere amounts are shown.</span>
+    {{ form.currency.errors }}
+  </div>
+
+  <div class="field">
+    <label for="{{ form.date_format.id_for_label }}">Date format</label>
+    {{ form.date_format }}
+    {{ form.date_format.errors }}
+  </div>
+
+  <button type="submit" class="btn btn-block">{% icon "check" 18 %} Save settings</button>
+</form>
+
+{% endblock %}

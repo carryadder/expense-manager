@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Log in · Splitly{% endblock %}
+{% block content %}
+
+<div class="auth-wrap">
+  <div class="auth-logo">💸</div>
+  <h1>Welcome back</h1>
+  <p class="page-sub">Log in to Splitly</p>
+
+  <form method="post" class="card-form" novalidate>
+    {% csrf_token %}
+    {% if form.errors %}
+    <div class="toast toast-error" style="margin-bottom:16px">Wrong username or password.</div>
+    {% endif %}
+    <div class="field">
+      <label for="{{ form.username.id_for_label }}">Username</label>
+      {{ form.username }}
+    </div>
+    <div class="field">
+      <label for="{{ form.password.id_for_label }}">Password</label>
+      {{ form.password }}
+    </div>
+    <button type="submit" class="btn btn-block">Log in</button>
+  </form>
+  <p class="auth-switch">New here? <a href="{% url 'signup' %}">Create an account</a></p>
+</div>
+
+{% endblock %}
