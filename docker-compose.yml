@@ -1,0 +1,21 @@
+services:
+  web:
+    build: .
+    image: splitly
+    ports:
+      - "8007:8007"
+    environment:
+      # Generate your own for production:  python -c "import secrets;print(secrets.token_urlsafe(50))"
+      SECRET_KEY: "change-me-in-production"
+      DEBUG: "false"
+      ALLOWED_HOSTS: "*"
+      # If served over a domain, add it (and scheme) for CSRF, e.g.:
+      # CSRF_TRUSTED_ORIGINS: "https://splitly.example.com"
+      SQLITE_PATH: "/data/db.sqlite3"
+      PORT: "8007"
+    volumes:
+      - splitly-data:/data
+    restart: unless-stopped
+
+volumes:
+  splitly-data:

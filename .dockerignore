@@ -1,0 +1,14 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyd
+.git/
+.gitignore
+.playwright-mcp/
+scratchpad/
+.claude/
+db.sqlite3
+staticfiles/
+*.md
+brif.txt
