@@ -27,6 +27,72 @@
 {% endif %}
 
 <div class="section-head">
+  <h2>Members</h2>
+  <span class="count-pill">{{ memberships|length|add:local_members.count }}</span>
+</div>
+<div class="balance-list">
+  {% for ms in memberships %}
+  <div class="balance-row">
+    <div class="avatar">{{ ms.member.initials }}</div>
+    <div class="balance-name">
+      {{ ms.member.name }}
+      {% if ms.role == 'admin' %}<span class="role-badge">Admin</span>{% endif %}
+      {% if ms.user == user %}<span class="role-badge you">You</span>{% endif %}
+    </div>
+    {% if is_admin and ms.role != 'admin' %}
+    <form action="{% url 'member_remove' group.pk ms.member.pk %}" method="post" class="inline-form"
+          onsubmit="return confirm('Remove {{ ms.member.name }} from this group?');">
+      {% csrf_token %}
+      <button type="submit" class="btn-danger" title="Remove">{% icon "close" 16 %}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% for member in local_members %}
+  <div class="balance-row">
+    <div class="avatar">{{ member.initials }}</div>
+    <div class="balance-name">{{ member.name }} <span class="role-badge guest">Guest</span></div>
+    {% if is_admin %}
+    <form action="{% url 'member_remove' group.pk member.pk %}" method="post" class="inline-form"
+          onsubmit="return confirm('Remove {{ member.name }} from this group?');">
+      {% csrf_token %}
+      <button type="submit" class="btn-danger" title="Remove">{% icon "close" 16 %}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+{% if is_admin %}
+<div class="invite-card">
+  <div class="invite-head">{% icon "users" 16 %} Invite people</div>
+
+  <label class="invite-label">Shareable link</label>
+  <div class="invite-link-row">
+    <input type="text" id="invite-link" readonly
+           value="{{ request.scheme }}://{{ request.get_host }}{% url 'group_join' invite.code %}">
+    <button type="button" class="btn btn-ghost btn-copy" data-target="invite-link">Copy</button>
+  </div>
+
+  <label class="invite-label">Add by username</label>
+  <form action="{% url 'group_invite' group.pk %}" method="post" class="invite-inline">
+    {% csrf_token %}
+    <input type="hidden" name="kind" value="username">
+    <input type="text" name="username" placeholder="Friend’s username" autocomplete="off">
+    <button type="submit" class="btn">Add</button>
+  </form>
+
+  <label class="invite-label">Add a splitter without an account</label>
+  <form action="{% url 'group_invite' group.pk %}" method="post" class="invite-inline">
+    {% csrf_token %}
+    <input type="hidden" name="kind" value="local">
+    <input type="text" name="name" placeholder="Name (e.g. a flatmate)" autocomplete="off">
+    <button type="submit" class="btn btn-ghost">Add</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="section-head">
   <h2>Expenses</h2>
   <span class="count-pill">{{ group.expense_count }}</span>
 </div>
@@ -66,6 +132,7 @@
 </div>
 {% endif %}
 
+{% if is_admin %}
 <div class="btn-row" style="margin-top:22px">
   <form action="{% url 'group_delete' group.pk %}" method="post" class="inline-form"
         onsubmit="return confirm('Delete group “{{ group.name }}” and all its expenses?');">
@@ -73,6 +140,7 @@
     <button type="submit" class="btn btn-ghost">Delete group</button>
   </form>
 </div>
+{% endif %}
 
 <a href="{% url 'expense_create' group.pk %}" class="btn btn-block fab">{% icon "plus" 18 %} Add expense</a>
 

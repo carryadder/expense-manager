@@ -51,9 +51,16 @@ class ExpenseForm(forms.ModelForm):
             'note': forms.Textarea(attrs={'placeholder': 'Optional note…', 'rows': 2}),
         }
 
-    def __init__(self, *args, owner=None, **kwargs):
+    def __init__(self, *args, participants=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if owner is not None:
-            self.fields['paid_by'].queryset = Member.objects.filter(owner=owner)
+        if participants is not None:
+            self.fields['paid_by'].queryset = participants
         self.fields['paid_by'].required = False
         self.fields['paid_by'].empty_label = '— nobody / shared —'
+
+
+class InviteUserForm(forms.Form):
+    username = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={'placeholder': 'Friend’s username'}),
+    )

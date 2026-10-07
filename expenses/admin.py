@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import Expense, ExpenseSplit, Group, Member, UserSettings
+from .models import (
+    Expense, ExpenseSplit, Group, GroupInvite, GroupMembership, Member, UserSettings,
+)
 
 
 class ExpenseSplitInline(admin.TabularInline):
@@ -21,8 +23,19 @@ class UserSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
-    list_display = ['name', 'owner', 'created_at']
+    list_display = ['name', 'owner', 'user', 'created_at']
     list_filter = ['owner']
+
+
+@admin.register(GroupMembership)
+class GroupMembershipAdmin(admin.ModelAdmin):
+    list_display = ['group', 'user', 'member', 'role', 'joined_at']
+    list_filter = ['role']
+
+
+@admin.register(GroupInvite)
+class GroupInviteAdmin(admin.ModelAdmin):
+    list_display = ['group', 'code', 'created_at']
 
 
 @admin.register(Expense)

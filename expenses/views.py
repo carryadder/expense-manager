@@ -4,12 +4,22 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.contrib.auth.models import User
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import ExpenseForm, GroupForm, MemberForm, SettingsForm, SignUpForm
+from .forms import ExpenseForm, GroupForm, InviteUserForm, MemberForm, SettingsForm, SignUpForm
 from .icons import GROUP_ICON_CHOICES
-from .models import Expense, Group, Member, UserSettings
+from .models import Expense, Group, GroupInvite, GroupMembership, Member, UserSettings
+
+
+def _group_for_member(request, pk):
+    """Fetch a group the current user is a member of, or 404."""
+    group = get_object_or_404(Group, pk=pk)
+    if not group.is_member(request.user):
+        from django.http import Http404
+        raise Http404('Not a member of this group.')
+    return group
 
 
 def signup(request):
@@ -29,12 +39,14 @@ def signup(request):
 
 @login_required
 def group_list(request):
-    groups = Group.objects.filter(owner=request.user)
+    group_ids = GroupMembership.objects.filter(
+        user=request.user).values_list('group_id', flat=True)
+    groups = Group.objects.filter(id__in=group_ids)
     grand_total = groups.aggregate(s=Sum('expenses__amount'))['s'] or Decimal('0.00')
     return render(request, 'expenses/group_list.html', {
         'groups': groups,
         'grand_total': grand_total,
-        'member_count': Member.objects.filter(owner=request.user).count(),
+        'member_count': Member.objects.filter(owner=request.user, user__isnull=True).count(),
     })
 
 
@@ -48,6 +60,8 @@ def group_create(request):
             if group.icon not in GROUP_ICON_CHOICES:
                 group.icon = 'wallet'
             group.save()
+            # Creator becomes the admin member of their own group.
+            GroupMembership.add_user(group, request.user, role=GroupMembership.ADMIN)
             messages.success(request, f'Group "{group.name}" created.')
             return redirect('group_detail', pk=group.pk)
     else:
@@ -74,7 +88,7 @@ def settings_view(request):
 
 @login_required
 def group_detail(request, pk):
-    group = get_object_or_404(Group, pk=pk, owner=request.user)
+    group = _group_for_member(request, pk)
     expenses = group.expenses.select_related('paid_by').prefetch_related('splits__member')
 
     # Per-member owed totals across this group.
@@ -84,16 +98,27 @@ def group_detail(request, pk):
             owed[split.member] += split.share
     balances = sorted(owed.items(), key=lambda kv: kv[0].name)
 
+    memberships = group.memberships.select_related('user', 'member')
+    local_members = group.local_members.all()
+    is_admin = group.is_admin(request.user)
+
     return render(request, 'expenses/group_detail.html', {
         'group': group,
         'expenses': expenses,
         'balances': balances,
+        'memberships': memberships,
+        'local_members': local_members,
+        'is_admin': is_admin,
+        'invite': GroupInvite.for_group(group) if is_admin else None,
     })
 
 
 @login_required
 def group_delete(request, pk):
-    group = get_object_or_404(Group, pk=pk, owner=request.user)
+    group = get_object_or_404(Group, pk=pk)
+    if not group.is_admin(request.user):
+        messages.error(request, 'Only the group admin can delete it.')
+        return redirect('group_detail', pk=pk)
     if request.method == 'POST':
         name = group.name
         group.delete()
@@ -102,23 +127,104 @@ def group_delete(request, pk):
     return redirect('group_detail', pk=pk)
 
 
+# ---------------------------------------------------------------------------
+# Membership: invite, join, add local member, remove member
+# ---------------------------------------------------------------------------
+
+@login_required
+def group_invite(request, pk):
+    """Admin-only: add a member by username (shareable link is shown inline)."""
+    group = get_object_or_404(Group, pk=pk)
+    if not group.is_admin(request.user):
+        messages.error(request, 'Only the group admin can invite members.')
+        return redirect('group_detail', pk=pk)
+
+    if request.method == 'POST':
+        kind = request.POST.get('kind')
+        if kind == 'username':
+            username = (request.POST.get('username') or '').strip()
+            user = User.objects.filter(username__iexact=username).first()
+            if not user:
+                messages.error(request, f'No user named "{username}".')
+            elif group.is_member(user):
+                messages.error(request, f'{username} is already in this group.')
+            else:
+                GroupMembership.add_user(group, user)
+                messages.success(request, f'Added {user.username} to the group.')
+        elif kind == 'local':
+            name = (request.POST.get('name') or '').strip()
+            if not name:
+                messages.error(request, 'Enter a name.')
+            else:
+                member, _ = Member.objects.get_or_create(
+                    owner=group.owner, name=name, defaults={'user': None})
+                member.local_groups.add(group)
+                messages.success(request, f'Added "{name}" as a splitter.')
+    return redirect('group_detail', pk=pk)
+
+
+@login_required
+def group_join(request, code):
+    """Open an invite link; join the group on confirmation."""
+    invite = get_object_or_404(GroupInvite, code=code)
+    group = invite.group
+    already = group.is_member(request.user)
+    if request.method == 'POST' and not already:
+        GroupMembership.add_user(group, request.user)
+        messages.success(request, f'You joined "{group.name}".')
+        return redirect('group_detail', pk=group.pk)
+    return render(request, 'expenses/join.html', {
+        'group': group,
+        'already': already,
+        'member_count': group.memberships.count(),
+    })
+
+
+@login_required
+def member_remove(request, pk, member_pk):
+    """Admin-only: remove a member (real user membership or local member) from a
+    group. Past expense splits are preserved."""
+    group = get_object_or_404(Group, pk=pk)
+    if not group.is_admin(request.user):
+        messages.error(request, 'Only the group admin can manage members.')
+        return redirect('group_detail', pk=pk)
+    if request.method != 'POST':
+        return redirect('group_detail', pk=pk)
+
+    member = get_object_or_404(Member, pk=member_pk)
+    membership = group.memberships.filter(member=member).first()
+    if membership:
+        if membership.role == GroupMembership.ADMIN:
+            messages.error(request, 'The admin can’t be removed. Delete the group instead.')
+            return redirect('group_detail', pk=pk)
+        name = member.name
+        membership.delete()
+    else:
+        name = member.name
+        member.local_groups.remove(group)
+    messages.success(request, f'Removed "{name}" from the group.')
+    return redirect('group_detail', pk=pk)
+
+
 @login_required
 def expense_create(request, pk):
-    group = get_object_or_404(Group, pk=pk, owner=request.user)
-    all_members = Member.objects.filter(owner=request.user)
+    group = _group_for_member(request, pk)
+    participants = group.participants()
 
-    # Default selected splitters = the group's remembered preference.
-    default_ids = set(group.last_splitters.values_list('id', flat=True))
+    # Default selected splitters = the group's remembered preference, else all.
+    remembered = set(group.last_splitters.values_list('id', flat=True))
+    default_ids = remembered or set(participants.values_list('id', flat=True))
 
-    # custom_shares maps member id (str) -> raw share string, to repopulate the
-    # form after a validation error.
+    # Default payer = the current user's member in this group.
+    my_member = group.member_for(request.user)
+
     custom_shares = {}
 
     if request.method == 'POST':
-        form = ExpenseForm(request.POST, owner=request.user)
+        form = ExpenseForm(request.POST, participants=participants)
         split_type = request.POST.get('split_type', Expense.EQUAL)
         selected_ids = request.POST.getlist('splitters')
-        selected = list(all_members.filter(id__in=selected_ids))
+        selected = list(participants.filter(id__in=selected_ids))
 
         if form.is_valid():
             error = None
@@ -141,8 +247,8 @@ def expense_create(request, pk):
                     shares_by_member[member] = share
                     total += share
                 if not error and total != form.cleaned_data['amount']:
-                    error = (f'Custom shares add up to ${total} but the total is '
-                             f'${form.cleaned_data["amount"]}. They must match.')
+                    error = (f'Custom shares add up to {total} but the total is '
+                             f'{form.cleaned_data["amount"]}. They must match.')
 
             if error:
                 messages.error(request, error)
@@ -155,19 +261,20 @@ def expense_create(request, pk):
                     expense.split_custom(shares_by_member)
                 else:
                     expense.split_equally(selected)
-                # Remember this splitter set as the group's new default.
                 group.last_splitters.set(selected)
                 messages.success(request, f'Added "{expense.title}".')
                 return redirect('group_detail', pk=group.pk)
         default_ids = set(int(i) for i in selected_ids)
     else:
-        form = ExpenseForm(owner=request.user)
+        form = ExpenseForm(participants=participants, initial={
+            'paid_by': my_member.pk if my_member else None,
+        })
         split_type = Expense.EQUAL
 
     return render(request, 'expenses/expense_form.html', {
         'group': group,
         'form': form,
-        'all_members': all_members,
+        'all_members': participants,
         'default_ids': default_ids,
         'split_type': split_type,
         'custom_shares': custom_shares,
@@ -176,17 +283,22 @@ def expense_create(request, pk):
 
 @login_required
 def expense_delete(request, pk):
-    expense = get_object_or_404(Expense, pk=pk, group__owner=request.user)
-    group_pk = expense.group.pk
+    expense = get_object_or_404(Expense, pk=pk)
+    group = expense.group
+    if not group.is_member(request.user):
+        from django.http import Http404
+        raise Http404()
     if request.method == 'POST':
         expense.delete()
         messages.success(request, 'Expense deleted.')
-    return redirect('group_detail', pk=group_pk)
+    return redirect('group_detail', pk=group.pk)
 
 
 @login_required
 def member_list(request):
-    members = Member.objects.filter(owner=request.user)
+    # Only the user's own name-only splitters (real-user members are managed
+    # per-group via invites).
+    members = Member.objects.filter(owner=request.user, user__isnull=True)
     if request.method == 'POST':
         form = MemberForm(request.POST)
         if form.is_valid():
@@ -208,7 +320,7 @@ def member_list(request):
 
 @login_required
 def member_delete(request, pk):
-    member = get_object_or_404(Member, pk=pk, owner=request.user)
+    member = get_object_or_404(Member, pk=pk, owner=request.user, user__isnull=True)
     if request.method == 'POST':
         name = member.name
         member.delete()

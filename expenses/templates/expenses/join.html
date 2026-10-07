@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load expense_extras %}
+{% block title %}Join {{ group.name }} · Splitly{% endblock %}
+{% block content %}
+
+<div class="auth-wrap">
+  <div class="group-emoji" style="margin:0 auto 14px">{% icon group.icon 28 %}</div>
+  <h1 style="text-align:center">{{ group.name }}</h1>
+  <p class="page-sub" style="text-align:center">
+    You’ve been invited to join this expense group
+    · {{ member_count }} member{{ member_count|pluralize }}
+  </p>
+
+  <div class="card-form">
+    {% if already %}
+    <p style="margin-bottom:16px;color:var(--muted)">You’re already a member of this group.</p>
+    <a href="{% url 'group_detail' group.pk %}" class="btn btn-block">{% icon "chevron-right" 18 %} Open group</a>
+    {% else %}
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-block">{% icon "check" 18 %} Join “{{ group.name }}”</button>
+    </form>
+    <a href="{% url 'group_list' %}" class="btn btn-ghost btn-block" style="margin-top:10px">Not now</a>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

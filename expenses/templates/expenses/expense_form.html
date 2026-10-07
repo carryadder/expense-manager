@@ -5,7 +5,7 @@
 
 <a href="{% url 'group_detail' group.pk %}" class="back-link">{% icon "chevron-left" 16 %} {% icon group.icon 14 %} {{ group.name }}</a>
 <h1 class="page-title">Add expense</h1>
-<p class="page-sub">Split it across the members you choose. Your last selection is pre-filled.</p>
+<p class="page-sub">Split it across the group members you choose — everyone, or just the ones involved. Your last selection is pre-filled.</p>
 
 <form method="post" class="card-form" novalidate data-currency="{{ app_settings.currency_symbol }}">
   {% csrf_token %}
@@ -39,7 +39,7 @@
 
   <div class="field">
     <label>Split between
-      <a href="{% url 'member_list' %}" style="float:right;font-weight:600;color:var(--brand);text-decoration:none">Manage splitters {% icon "chevron-right" 13 %}</a>
+      <a href="{% url 'group_detail' group.pk %}" style="float:right;font-weight:600;color:var(--brand);text-decoration:none">Manage members {% icon "chevron-right" 13 %}</a>
     </label>
     {% if all_members %}
     <div class="splitter-grid">
@@ -82,8 +82,8 @@
     <div id="split-preview" class="split-preview"></div>
     {% else %}
     <div class="empty" style="padding:24px">
-      <p>No splitters yet.</p>
-      <a href="{% url 'member_list' %}" class="btn btn-ghost" style="margin-top:12px">Add members</a>
+      <p>No members in this group yet.</p>
+      <a href="{% url 'group_detail' group.pk %}" class="btn btn-ghost" style="margin-top:12px">Invite members</a>
     </div>
     {% endif %}
   </div>

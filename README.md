@@ -8,7 +8,13 @@ A mobile-friendly Django web app for tracking expenses and splitting them among 
 - **Expenses** — Add a title, amount, and an optional note, split across the members you pick:
   - **Equal split** — divided evenly, with any rounding remainder absorbed so shares always sum to the exact total.
   - **Custom split** — type each member's share by hand. A live indicator shows how much is left to assign (or by how much you're over), and the server rejects any split whose shares don't sum to the total.
-- **Members (splitters)** — Add people once and reuse them across every group. Manage them from the **Splitters** page.
+- **Shared groups & invitations** — Invite friends to a group so you all see the same expenses and balances:
+  - **Shareable link** — the admin copies a `/join/<code>` link; anyone logged in who opens it can join.
+  - **Add by username** — the admin adds an existing user directly.
+  - **Guests** — the admin can also add name-only splitters who don't have an account.
+  - **Permissions** — only the group **creator (admin)** can invite, remove members, or delete the group. Every member can add expenses and view balances.
+- **Flexible split scope** — when adding an expense you pick which members it splits across (default: everyone, or just the ones involved — e.g. "I paid 1000 for food, split among only the 5 who ate").
+- **Members (splitters)** — The **Splitters** page manages your own name-only people for reuse; real users join per-group via invites.
 - **Settings** — Per-user preferences at `/settings/`: display name, **currency** (symbol applied to every amount), and **date format** (relative / DD-MM-YYYY / MM-DD-YYYY / ISO).
 - **Icons** — The whole UI uses inline SVG icons (no emoji, no icon-font file). Groups pick an icon from a built-in grid instead of an emoji.
 - **Remembered preference** — Each group remembers the last set of splitters you used. The next expense you add there pre-selects them, so you don't re-pick members every time.
@@ -41,7 +47,8 @@ Then open http://127.0.0.1:8000/ and sign up (or log in).
 ```
 config/          project settings & root URLs
 expenses/        the app
-  models.py      UserSettings, Group, Member, Expense, ExpenseSplit
+  models.py      UserSettings, Group, GroupMembership, GroupInvite,
+                 Member, Expense, ExpenseSplit
   views.py       group / expense / member / settings flows
   forms.py       sign-up, group, member, expense, settings forms
   icons.py       inline SVG icon set + group-icon choices

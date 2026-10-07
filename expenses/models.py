@@ -1,7 +1,14 @@
+import secrets
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.conf import settings
 from django.db import models
+
+INVITE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
+
+
+def generate_invite_code():
+    return ''.join(secrets.choice(INVITE_ALPHABET) for _ in range(8))
 
 # (code, symbol, label) — the currencies offered on the settings page.
 CURRENCIES = [
@@ -61,13 +68,30 @@ class UserSettings(models.Model):
 
 
 class Member(models.Model):
-    """A person who can participate in expense splits, owned by a user."""
+    """A person who can participate in expense splits.
+
+    A member is either a plain name-label (``user`` is null, created by
+    ``owner``) or is backed by a real invited user (``user`` set). Splits always
+    target a Member, so the same splitting logic serves both kinds.
+    """
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='members',
     )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='member_identities',
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=80)
+    # Groups this name-only member has been added to by an admin. Real-user
+    # members participate via GroupMembership instead and leave this empty.
+    local_groups = models.ManyToManyField(
+        'Group', related_name='local_members', blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -76,6 +100,10 @@ class Member(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def is_user(self):
+        return self.user_id is not None
 
     @property
     def initials(self):
@@ -119,6 +147,89 @@ class Group(models.Model):
     @property
     def expense_count(self):
         return self.expenses.count()
+
+    def is_admin(self, user):
+        return self.memberships.filter(user=user, role=GroupMembership.ADMIN).exists()
+
+    def is_member(self, user):
+        return self.memberships.filter(user=user).exists()
+
+    def member_for(self, user):
+        """The Member row this user splits as, in this group (or None)."""
+        ms = self.memberships.filter(user=user).select_related('member').first()
+        return ms.member if ms else None
+
+    def participants(self):
+        """All Member rows splittable in this group: every membership's member
+        plus any name-only local members the admin added to the group."""
+        ids = set(self.memberships.values_list('member_id', flat=True))
+        ids.update(self.local_members.values_list('id', flat=True))
+        return Member.objects.filter(id__in=ids)
+
+
+class GroupMembership(models.Model):
+    """Links a real user to a shared group, with a role and the Member row the
+    user splits as within that group."""
+    ADMIN = 'admin'
+    MEMBER = 'member'
+    ROLE_CHOICES = [(ADMIN, 'Admin'), (MEMBER, 'Member')]
+
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='memberships')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='group_memberships',
+    )
+    member = models.ForeignKey(
+        'Member', on_delete=models.CASCADE, related_name='memberships',
+    )
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=MEMBER)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['joined_at']
+        unique_together = [('group', 'user')]
+
+    def __str__(self):
+        return f'{self.user} in {self.group} ({self.role})'
+
+    @classmethod
+    def add_user(cls, group, user, role=None):
+        """Add a user to a group as a real-user member. Idempotent — returns the
+        existing membership if the user is already in the group."""
+        existing = cls.objects.filter(group=group, user=user).first()
+        if existing:
+            return existing
+        role = role or cls.MEMBER
+        # Reuse this user's self-member if present, else create one.
+        display = (getattr(user, 'settings', None) and user.settings.name) or user.username
+        member = Member.objects.filter(owner=group.owner, user=user).first()
+        if member is None:
+            name = display
+            # Avoid colliding with an existing name-label for this owner.
+            if Member.objects.filter(owner=group.owner, name=name).exists():
+                name = f'{display} (@{user.username})'
+            member = Member.objects.create(owner=group.owner, user=user, name=name)
+        return cls.objects.create(group=group, user=user, member=member, role=role)
+
+
+class GroupInvite(models.Model):
+    """A shareable join code for a group."""
+    group = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='invite')
+    code = models.CharField(max_length=20, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'invite:{self.code}'
+
+    @classmethod
+    def for_group(cls, group):
+        """Get the group's invite, creating one with a unique code if absent."""
+        invite = cls.objects.filter(group=group).first()
+        if invite:
+            return invite
+        while True:
+            code = generate_invite_code()
+            if not cls.objects.filter(code=code).exists():
+                return cls.objects.create(group=group, code=code)
 
 
 class Expense(models.Model):

@@ -126,6 +126,30 @@
   });
 })();
 
+// Copy invite link to clipboard.
+(function () {
+  document.querySelectorAll('.btn-copy').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      if (!input) return;
+      input.select();
+      input.setSelectionRange(0, 99999);
+      const done = () => {
+        const old = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = old; btn.classList.remove('copied'); }, 1800);
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(input.value).then(done, () => { document.execCommand('copy'); done(); });
+      } else {
+        document.execCommand('copy');
+        done();
+      }
+    });
+  });
+})();
+
 // Auto-dismiss toasts.
 (function () {
   document.querySelectorAll('.toast').forEach((t) => {
