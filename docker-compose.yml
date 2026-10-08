@@ -8,8 +8,10 @@ services:
       # Generate your own for production:  python -c "import secrets;print(secrets.token_urlsafe(50))"
       SECRET_KEY: "change-me-in-production"
       DEBUG: "false"
-      ALLOWED_HOSTS: "*"
-      # If served over a domain, add it (and scheme) for CSRF, e.g.:
+      # List the host(s)/IP you serve on. CSRF_TRUSTED_ORIGINS is auto-derived
+      # from these, so a bare IP over HTTP won't 403 on login POST.
+      ALLOWED_HOSTS: "72.60.204.176,localhost,127.0.0.1"
+      # Set explicitly if you front the app with a domain / HTTPS, e.g.:
       # CSRF_TRUSTED_ORIGINS: "https://splitly.example.com"
       SQLITE_PATH: "/data/db.sqlite3"
       PORT: "8007"

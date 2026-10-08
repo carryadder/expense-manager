@@ -37,9 +37,23 @@ DEBUG = env_bool('DEBUG', True)
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get(
     'ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',') if h.strip()]
 
-# Trust the deploy origin(s) for CSRF, e.g. "https://app.example.com".
+# Trust the deploy origin(s) for CSRF, e.g. "https://app.example.com". Django
+# requires the scheme + host (+ port) of any origin that POSTs a form.
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get(
     'CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()]
+
+# If not set explicitly, derive trusted origins from ALLOWED_HOSTS so that
+# serving over a bare IP/host (e.g. http://1.2.3.4:8007) doesn't 403 on POST.
+# A wildcard host can't become a concrete origin, so it's skipped here — set
+# CSRF_TRUSTED_ORIGINS explicitly in that case.
+if not CSRF_TRUSTED_ORIGINS:
+    _port = os.environ.get('PORT', '8007')
+    for _host in ALLOWED_HOSTS:
+        if _host in ('*', ''):
+            continue
+        for _scheme in ('http', 'https'):
+            CSRF_TRUSTED_ORIGINS.append(f'{_scheme}://{_host}')
+            CSRF_TRUSTED_ORIGINS.append(f'{_scheme}://{_host}:{_port}')
 
 
 # Application definition
