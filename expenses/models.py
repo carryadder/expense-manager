@@ -307,3 +307,87 @@ class ExpenseSplit(models.Model):
 
     def __str__(self):
         return f'{self.member.name}: {self.share}'
+
+
+# ---------------------------------------------------------------------------
+# Milk tracker: a running tally of litres taken from a vendor, reset on payment.
+# ---------------------------------------------------------------------------
+
+class MilkVendor(models.Model):
+    """The milk supplier for a user, with a price per litre."""
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='milk_vendors',
+    )
+    name = models.CharField(max_length=80)
+    price_per_litre = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.00'))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def pending_entries(self):
+        return self.entries.filter(payment__isnull=True)
+
+    @property
+    def pending_litres(self):
+        agg = self.pending_entries.aggregate(s=models.Sum('litres'))
+        return agg['s'] or Decimal('0.000')
+
+    @property
+    def pending_amount(self):
+        return (self.pending_litres * self.price_per_litre).quantize(Decimal('0.01'))
+
+
+class MilkPayment(models.Model):
+    """A settled milk cycle — closes out the entries pending at payment time."""
+    vendor = models.ForeignKey(
+        MilkVendor,
+        on_delete=models.CASCADE,
+        related_name='payments',
+    )
+    total_litres = models.DecimalField(max_digits=10, decimal_places=3)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-paid_at']
+
+    def __str__(self):
+        return f'{self.vendor.name} paid {self.amount} for {self.total_litres} L'
+
+
+class MilkEntry(models.Model):
+    """One milk pickup: how many litres on a given day. Pending until its
+    vendor is paid, at which point it's stamped with the MilkPayment."""
+    vendor = models.ForeignKey(
+        MilkVendor,
+        on_delete=models.CASCADE,
+        related_name='entries',
+    )
+    litres = models.DecimalField(max_digits=6, decimal_places=3)
+    note = models.CharField(max_length=120, blank=True)
+    payment = models.ForeignKey(
+        MilkPayment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='entries',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name_plural = 'milk entries'
+
+    def __str__(self):
+        return f'{self.litres} L from {self.vendor.name}'
+
+    @property
+    def amount(self):
+        return (self.litres * self.vendor.price_per_litre).quantize(Decimal('0.01'))

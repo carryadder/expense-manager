@@ -15,5 +15,11 @@ urlpatterns = [
     path('members/', views.member_list, name='member_list'),
     path('members/<int:pk>/delete/', views.member_delete, name='member_delete'),
     path('settings/', views.settings_view, name='settings'),
+    path('milk/', views.milk_tracker, name='milk_tracker'),
+    path('milk/<int:pk>/', views.milk_vendor, name='milk_vendor'),
+    path('milk/<int:pk>/edit/', views.milk_vendor_edit, name='milk_vendor_edit'),
+    path('milk/<int:pk>/delete/', views.milk_vendor_delete, name='milk_vendor_delete'),
+    path('milk/<int:pk>/pay/', views.milk_pay, name='milk_pay'),
+    path('milk/entry/<int:pk>/delete/', views.milk_entry_delete, name='milk_entry_delete'),
     path('signup/', views.signup, name='signup'),
 ]

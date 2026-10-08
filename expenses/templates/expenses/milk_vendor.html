@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load expense_extras %}
+{% block title %}{{ vendor.name }} · Milk · Splitly{% endblock %}
+{% block content %}
+
+<a href="{% url 'milk_tracker' %}" class="back-link">{% icon "chevron-left" 16 %} All vendors</a>
+
+<section class="hero">
+  <div class="hero-label">{% icon "milk" 16 %} {{ vendor.name }}</div>
+  <div class="hero-amount">{{ vendor.pending_litres|floatformat:"-2" }} L</div>
+  <div class="hero-sub">
+    <span>{{ vendor.pending_amount|money:app_settings }} pending</span>
+    <span>{{ vendor.price_per_litre|money:app_settings }}/litre</span>
+  </div>
+</section>
+
+<div class="btn-row">
+  <form method="post" action="{% url 'milk_pay' vendor.pk %}" class="inline-form" style="flex:1"
+        onsubmit="return confirm('Mark {{ vendor.pending_litres|floatformat:"-2" }} L as paid? This resets the tally to 0.');">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-block" {% if vendor.pending_litres <= 0 %}disabled{% endif %}>
+      {% icon "check" 18 %} Mark as paid &amp; reset
+    </button>
+  </form>
+  <a href="{% url 'milk_vendor_edit' vendor.pk %}" class="btn btn-ghost" title="Edit vendor">{% icon "edit" 18 %}</a>
+</div>
+
+<div class="section-head"><h2>Add milk</h2></div>
+<form method="post" class="card-form" novalidate>
+  {% csrf_token %}
+  <div class="field">
+    <label for="{{ form.litres.id_for_label }}">Litres taken</label>
+    {{ form.litres }}
+    {{ form.litres.errors }}
+  </div>
+  <div class="quick-litres">
+    <button type="button" class="chip-btn" data-add="0.5">+0.5</button>
+    <button type="button" class="chip-btn" data-add="1">+1</button>
+    <button type="button" class="chip-btn" data-add="2">+2</button>
+  </div>
+  <div class="field" style="margin-top:14px">
+    <label for="{{ form.note.id_for_label }}">Note <span style="font-weight:400">(optional)</span></label>
+    {{ form.note }}
+  </div>
+  <button type="submit" class="btn btn-block">{% icon "plus" 18 %} Add entry</button>
+</form>
+
+<div class="section-head">
+  <h2>Pending (unpaid)</h2>
+  <span class="count-pill">{{ pending|length }}</span>
+</div>
+{% if pending %}
+<div class="grid">
+  {% for e in pending %}
+  <div class="exp-row">
+    <div class="exp-main">
+      <div class="exp-title">{{ e.litres|floatformat:"-2" }} L</div>
+      {% if e.note %}<div class="exp-note">{{ e.note }}</div>{% endif %}
+      <div class="exp-per">{{ e.created_at|userdate:app_settings }}</div>
+    </div>
+    <div class="exp-amount">{{ e.amount|money:app_settings }}</div>
+    <form action="{% url 'milk_entry_delete' e.pk %}" method="post" class="inline-form"
+          onsubmit="return confirm('Remove this entry?');">
+      {% csrf_token %}
+      <button type="submit" class="btn-danger" title="Remove">{% icon "close" 18 %}</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="empty-emoji">{% icon "droplet" 40 %}</div>
+  <h3>Nothing pending</h3>
+  <p>Add the litres you take and they’ll tally up here.</p>
+</div>
+{% endif %}
+
+{% if payments %}
+<div class="section-head"><h2>Payment history</h2></div>
+<div class="balance-list">
+  {% for p in payments %}
+  <div class="balance-row">
+    <div class="avatar">{% icon "check" 16 %}</div>
+    <div class="balance-name">
+      {{ p.total_litres|floatformat:"-2" }} L
+      <span class="role-badge guest">{{ p.entries.count }} entr{{ p.entries.count|pluralize:"y,ies" }}</span>
+      <span style="color:var(--muted);font-weight:400">· {{ p.paid_at|userdate:app_settings }}</span>
+    </div>
+    <div class="balance-amt">{{ p.amount|money:app_settings }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="btn-row" style="margin-top:22px">
+  <form action="{% url 'milk_vendor_delete' vendor.pk %}" method="post" class="inline-form"
+        onsubmit="return confirm('Delete vendor “{{ vendor.name }}” and all its history?');">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-ghost">{% icon "trash" 16 %} Delete vendor</button>
+  </form>
+</div>
+
+<script>
+// Quick +litre buttons bump the litres input.
+(function () {
+  var input = document.getElementById('{{ form.litres.id_for_label }}');
+  if (!input) return;
+  document.querySelectorAll('.chip-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var cur = parseFloat(input.value) || 0;
+      input.value = (cur + parseFloat(b.dataset.add)).toString();
+      input.focus();
+    });
+  });
+})();
+</script>
+
+{% endblock %}

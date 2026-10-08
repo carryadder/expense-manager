@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load expense_extras %}
+{% block title %}Edit {{ vendor.name }} · Splitly{% endblock %}
+{% block content %}
+
+<a href="{% url 'milk_vendor' vendor.pk %}" class="back-link">{% icon "chevron-left" 16 %} {{ vendor.name }}</a>
+<h1 class="page-title">Edit vendor</h1>
+<p class="page-sub">Changing the price updates the amount shown for pending litres.</p>
+
+<form method="post" class="card-form" novalidate>
+  {% csrf_token %}
+  <div class="field">
+    <label for="{{ form.name.id_for_label }}">Vendor name</label>
+    {{ form.name }}
+    {{ form.name.errors }}
+  </div>
+  <div class="field">
+    <label for="{{ form.price_per_litre.id_for_label }}">Price per litre</label>
+    <div class="amount-field">
+      <span class="cur">{{ app_settings.currency_symbol }}</span>
+      {{ form.price_per_litre }}
+    </div>
+    {{ form.price_per_litre.errors }}
+  </div>
+  <button type="submit" class="btn btn-block">{% icon "check" 18 %} Save</button>
+</form>
+
+{% endblock %}

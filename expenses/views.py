@@ -8,9 +8,15 @@ from django.contrib.auth.models import User
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import ExpenseForm, GroupForm, InviteUserForm, MemberForm, SettingsForm, SignUpForm
+from .forms import (
+    ExpenseForm, GroupForm, InviteUserForm, MemberForm, MilkEntryForm,
+    MilkVendorForm, SettingsForm, SignUpForm,
+)
 from .icons import GROUP_ICON_CHOICES
-from .models import Expense, Group, GroupInvite, GroupMembership, Member, UserSettings
+from .models import (
+    Expense, Group, GroupInvite, GroupMembership, Member, MilkEntry,
+    MilkPayment, MilkVendor, UserSettings,
+)
 
 
 def _group_for_member(request, pk):
@@ -326,3 +332,123 @@ def member_delete(request, pk):
         member.delete()
         messages.success(request, f'Removed "{name}".')
     return redirect('member_list')
+
+
+# ---------------------------------------------------------------------------
+# Milk tracker
+# ---------------------------------------------------------------------------
+
+@login_required
+def milk_tracker(request):
+    """Show vendors with their running tally, pending entries, and payment
+    history. Also handles adding a new vendor."""
+    vendors = MilkVendor.objects.filter(owner=request.user).prefetch_related(
+        'entries', 'payments')
+
+    if request.method == 'POST':
+        form = MilkVendorForm(request.POST)
+        if form.is_valid():
+            vendor = form.save(commit=False)
+            vendor.owner = request.user
+            vendor.save()
+            messages.success(request, f'Added vendor "{vendor.name}".')
+            return redirect('milk_vendor', pk=vendor.pk)
+    else:
+        form = MilkVendorForm()
+
+    return render(request, 'expenses/milk_tracker.html', {
+        'vendors': vendors,
+        'form': form,
+    })
+
+
+@login_required
+def milk_vendor(request, pk):
+    """A single vendor: add an entry here, see the pending tally and history."""
+    vendor = get_object_or_404(MilkVendor, pk=pk, owner=request.user)
+
+    if request.method == 'POST':
+        form = MilkEntryForm(request.POST)
+        if form.is_valid():
+            entry = form.save(commit=False)
+            entry.vendor = vendor
+            entry.save()
+            messages.success(request, f'Added {entry.litres} L.')
+            return redirect('milk_vendor', pk=vendor.pk)
+    else:
+        form = MilkEntryForm()
+
+    pending = vendor.pending_entries.all()
+    payments = vendor.payments.prefetch_related('entries')
+
+    return render(request, 'expenses/milk_vendor.html', {
+        'vendor': vendor,
+        'form': form,
+        'pending': pending,
+        'payments': payments,
+    })
+
+
+@login_required
+def milk_vendor_edit(request, pk):
+    vendor = get_object_or_404(MilkVendor, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        form = MilkVendorForm(request.POST, instance=vendor)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Vendor updated.')
+            return redirect('milk_vendor', pk=vendor.pk)
+    else:
+        form = MilkVendorForm(instance=vendor)
+    return render(request, 'expenses/milk_vendor_edit.html', {
+        'vendor': vendor,
+        'form': form,
+    })
+
+
+@login_required
+def milk_entry_delete(request, pk):
+    entry = get_object_or_404(MilkEntry, pk=pk, vendor__owner=request.user)
+    vendor_pk = entry.vendor.pk
+    if request.method == 'POST':
+        if entry.payment_id is not None:
+            messages.error(request, 'Can’t delete an entry that’s already been paid.')
+        else:
+            entry.delete()
+            messages.success(request, 'Entry removed.')
+    return redirect('milk_vendor', pk=vendor_pk)
+
+
+@login_required
+def milk_pay(request, pk):
+    """Settle the current cycle: snapshot the pending litres+amount into a
+    MilkPayment, stamp the pending entries, and reset the tally to zero."""
+    vendor = get_object_or_404(MilkVendor, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        pending = vendor.pending_entries
+        litres = vendor.pending_litres
+        if litres <= 0:
+            messages.error(request, 'Nothing pending to pay.')
+        else:
+            payment = MilkPayment.objects.create(
+                vendor=vendor,
+                total_litres=litres,
+                amount=vendor.pending_amount,
+            )
+            pending.update(payment=payment)
+            messages.success(
+                request,
+                f'Paid for {litres} L. Tally reset to zero.',
+            )
+    return redirect('milk_vendor', pk=vendor.pk)
+
+
+@login_required
+def milk_vendor_delete(request, pk):
+    vendor = get_object_or_404(MilkVendor, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        name = vendor.name
+        vendor.delete()
+        messages.success(request, f'Deleted vendor "{name}".')
+        return redirect('milk_tracker')
+    return redirect('milk_vendor', pk=pk)

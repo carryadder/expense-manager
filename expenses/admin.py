@@ -1,8 +1,25 @@
 from django.contrib import admin
 
 from .models import (
-    Expense, ExpenseSplit, Group, GroupInvite, GroupMembership, Member, UserSettings,
+    Expense, ExpenseSplit, Group, GroupInvite, GroupMembership, Member,
+    MilkEntry, MilkPayment, MilkVendor, UserSettings,
 )
+
+
+@admin.register(MilkVendor)
+class MilkVendorAdmin(admin.ModelAdmin):
+    list_display = ['name', 'owner', 'price_per_litre']
+
+
+@admin.register(MilkEntry)
+class MilkEntryAdmin(admin.ModelAdmin):
+    list_display = ['vendor', 'litres', 'payment', 'created_at']
+    list_filter = ['vendor']
+
+
+@admin.register(MilkPayment)
+class MilkPaymentAdmin(admin.ModelAdmin):
+    list_display = ['vendor', 'total_litres', 'amount', 'paid_at']
 
 
 class ExpenseSplitInline(admin.TabularInline):

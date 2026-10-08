@@ -22,6 +22,9 @@ ICONS = {
     'check': '<polyline points="20 6 9 17 4 12"/>',
     'receipt': '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/>',
     'folder': '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2Z"/>',
+    'droplet': '<path d="M12 2.7l5.3 5.3a7.5 7.5 0 1 1-10.6 0Z"/>',
+    'milk': '<path d="M8 2h8"/><path d="M9 2v3.2a2 2 0 0 1-.4 1.2L7 9.5a3 3 0 0 0-.5 1.7V20a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-8.8a3 3 0 0 0-.5-1.7l-1.6-3.1a2 2 0 0 1-.4-1.2V2"/><path d="M6.5 12h11"/>',
+    'trash': '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
 
     # --- group icons (picker options) ---
     'home': '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><polyline points="9 22 9 12 15 12 15 22"/>',

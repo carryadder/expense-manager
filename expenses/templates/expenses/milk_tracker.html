@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load expense_extras %}
+{% block title %}Milk tracker · Splitly{% endblock %}
+{% block content %}
+
+<a href="{% url 'group_list' %}" class="back-link">{% icon "chevron-left" 16 %} Back</a>
+<h1 class="page-title">{% icon "milk" 22 %} Milk tracker</h1>
+<p class="page-sub">Count litres you take from a vendor; pay whenever you like and the tally resets.</p>
+
+{% if vendors %}
+<div class="section-head"><h2>Vendors</h2><span class="count-pill">{{ vendors|length }}</span></div>
+<div class="grid">
+  {% for v in vendors %}
+  <a href="{% url 'milk_vendor' v.pk %}" class="group-card">
+    <div class="group-emoji">{% icon "milk" 24 %}</div>
+    <div class="group-meta">
+      <div class="group-name">{{ v.name }}</div>
+      <div class="group-stat">{{ v.price_per_litre|money:app_settings }}/litre</div>
+    </div>
+    <div style="text-align:right">
+      <div class="group-amount">{{ v.pending_litres|floatformat:"-2" }} L</div>
+      <div class="exp-per">{{ v.pending_amount|money:app_settings }} due</div>
+    </div>
+    <span class="chev">{% icon "chevron-right" 20 %}</span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="empty-emoji">{% icon "milk" 44 %}</div>
+  <h3>No vendors yet</h3>
+  <p>Add your milkman to start counting litres.</p>
+</div>
+{% endif %}
+
+<div class="section-head"><h2>Add a vendor</h2></div>
+<form method="post" class="card-form" novalidate>
+  {% csrf_token %}
+  <div class="field">
+    <label for="{{ form.name.id_for_label }}">Vendor name</label>
+    {{ form.name }}
+    {{ form.name.errors }}
+  </div>
+  <div class="field">
+    <label for="{{ form.price_per_litre.id_for_label }}">Price per litre</label>
+    <div class="amount-field">
+      <span class="cur">{{ app_settings.currency_symbol }}</span>
+      {{ form.price_per_litre }}
+    </div>
+    {{ form.price_per_litre.errors }}
+  </div>
+  <button type="submit" class="btn btn-block">{% icon "plus" 18 %} Add vendor</button>
+</form>
+
+{% endblock %}

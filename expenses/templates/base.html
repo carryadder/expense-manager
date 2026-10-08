@@ -15,6 +15,7 @@
     <header class="topbar">
       <a href="{% url 'group_list' %}" class="brand">{% icon "wallet" 22 %} Splitly</a>
       <nav class="topnav">
+        <a href="{% url 'milk_tracker' %}" class="nav-link" title="Milk tracker">{% icon "milk" 18 %}</a>
         <a href="{% url 'member_list' %}" class="nav-link" title="Splitters">{% icon "users" 18 %}</a>
         <a href="{% url 'settings' %}" class="user-chip" title="Signed in — edit settings">
           <span class="user-avatar">{{ app_settings.name|slice:":1"|upper }}</span>

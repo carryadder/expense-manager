@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
-from .models import Expense, Group, Member, UserSettings
+from .models import Expense, Group, Member, MilkEntry, MilkVendor, UserSettings
 
 
 class SignUpForm(UserCreationForm):
@@ -64,3 +64,29 @@ class InviteUserForm(forms.Form):
         max_length=150,
         widget=forms.TextInput(attrs={'placeholder': 'Friend’s username'}),
     )
+
+
+class MilkVendorForm(forms.ModelForm):
+    class Meta:
+        model = MilkVendor
+        fields = ['name', 'price_per_litre']
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'e.g. Ramu the milkman'}),
+            'price_per_litre': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'placeholder': '0.00'}),
+        }
+
+
+class MilkEntryForm(forms.ModelForm):
+    class Meta:
+        model = MilkEntry
+        fields = ['litres', 'note']
+        widgets = {
+            'litres': forms.NumberInput(attrs={'step': '0.25', 'min': '0', 'placeholder': 'e.g. 1 or 2'}),
+            'note': forms.TextInput(attrs={'placeholder': 'Optional note'}),
+        }
+
+    def clean_litres(self):
+        litres = self.cleaned_data['litres']
+        if litres is None or litres <= 0:
+            raise forms.ValidationError('Enter a litre amount greater than 0.')
+        return litres

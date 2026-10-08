@@ -15,6 +15,7 @@ A mobile-friendly Django web app for tracking expenses and splitting them among 
   - **Permissions** — only the group **creator (admin)** can invite, remove members, or delete the group. Every member can add expenses and view balances.
 - **Flexible split scope** — when adding an expense you pick which members it splits across (default: everyone, or just the ones involved — e.g. "I paid 1000 for food, split among only the 5 who ate").
 - **Members (splitters)** — The **Splitters** page manages your own name-only people for reuse; real users join per-group via invites.
+- **Milk tracker** (`/milk/`) — Count litres taken from a vendor as a running tally. Add a vendor with a price/litre, log entries (1 L, 2 L, …) that accumulate, and tap **Mark as paid** to settle the cycle: the tally resets to 0 and the entries move to a payment history. One vendor can have many cycles.
 - **Settings** — Per-user preferences at `/settings/`: display name, **currency** (symbol applied to every amount), and **date format** (relative / DD-MM-YYYY / MM-DD-YYYY / ISO).
 - **Icons** — The whole UI uses inline SVG icons (no emoji, no icon-font file). Groups pick an icon from a built-in grid instead of an emoji.
 - **Remembered preference** — Each group remembers the last set of splitters you used. The next expense you add there pre-selects them, so you don't re-pick members every time.
@@ -48,7 +49,8 @@ Then open http://127.0.0.1:8000/ and sign up (or log in).
 config/          project settings & root URLs
 expenses/        the app
   models.py      UserSettings, Group, GroupMembership, GroupInvite,
-                 Member, Expense, ExpenseSplit
+                 Member, Expense, ExpenseSplit,
+                 MilkVendor, MilkEntry, MilkPayment
   views.py       group / expense / member / settings flows
   forms.py       sign-up, group, member, expense, settings forms
   icons.py       inline SVG icon set + group-icon choices
