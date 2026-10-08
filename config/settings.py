@@ -55,6 +55,11 @@ if not CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(f'{_scheme}://{_host}')
             CSRF_TRUSTED_ORIGINS.append(f'{_scheme}://{_host}:{_port}')
 
+# Behind an HTTPS-terminating reverse proxy, trust its forwarded-proto header so
+# Django knows the original request was secure. Harmless if the header is absent.
+if env_bool('USE_PROXY_SSL_HEADER', True):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 # Application definition
 

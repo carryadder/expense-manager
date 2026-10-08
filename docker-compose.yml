@@ -10,7 +10,7 @@ services:
       DEBUG: "false"
       # List the host(s)/IP you serve on. CSRF_TRUSTED_ORIGINS is auto-derived
       # from these, so a bare IP over HTTP won't 403 on login POST.
-      ALLOWED_HOSTS: "72.60.204.176,localhost,127.0.0.1"
+      ALLOWED_HOSTS: "money.smartmaheshwari.com,72.60.204.176,localhost,127.0.0.1"
       # Set explicitly if you front the app with a domain / HTTPS, e.g.:
       # CSRF_TRUSTED_ORIGINS: "https://splitly.example.com"
       SQLITE_PATH: "/data/db.sqlite3"
